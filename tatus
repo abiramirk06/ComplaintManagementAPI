@@ -1,0 +1,199 @@
+[1mdiff --git a/.gitignore b/.gitignore[m
+[1mnew file mode 100644[m
+[1mindex 0000000..b4fcf82[m
+[1m--- /dev/null[m
+[1m+++ b/.gitignore[m
+[36m@@ -0,0 +1,18 @@[m
+[32m+[m
+[32m+[m[32m# Build output[m
+[32m+[m[32mbin/[m
+[32m+[m[32mobj/[m
+[32m+[m
+[32m+[m[32m# Visual Studio[m
+[32m+[m[32m.vs/[m
+[32m+[m[32m*.user[m
+[32m+[m[32m*.suo[m
+[32m+[m
+[32m+[m[32m# Local settings and secrets[m
+[32m+[m[32mappsettings.Development.json[m
+[32m+[m[32msecrets.json[m
+[32m+[m[32m.env[m
+[32m+[m[32m.env.*[m
+[32m+[m
+[32m+[m[32m# Log files[m
+[32m+[m[32m*.log[m
+[1mdiff --git a/ComplaintManagementAPI.csproj b/ComplaintManagementAPI.csproj[m
+[1mnew file mode 100644[m
+[1mindex 0000000..bbf335c[m
+[1m--- /dev/null[m
+[1m+++ b/ComplaintManagementAPI.csproj[m
+[36m@@ -0,0 +1,19 @@[m
+[32m+[m[32m<Project Sdk="Microsoft.NET.Sdk.Web">[m
+[32m+[m
+[32m+[m[32m  <PropertyGroup>[m
+[32m+[m[32m    <TargetFramework>net10.0</TargetFramework>[m
+[32m+[m[32m    <Nullable>enable</Nullable>[m
+[32m+[m[32m    <ImplicitUsings>enable</ImplicitUsings>[m
+[32m+[m[32m  </PropertyGroup>[m
+[32m+[m
+[32m+[m[32m  <ItemGroup>[m
+[32m+[m[32m    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />[m
+[32m+[m[32m    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />[m
+[32m+[m[32m    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.12">[m
+[32m+[m[32m      <PrivateAssets>all</PrivateAssets>[m
+[32m+[m[32m      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>[m
+[32m+[m[32m    </PackageReference>[m
+[32m+[m[32m    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.0" />[m
+[32m+[m[32m  </ItemGroup>[m
+[32m+[m
+[32m+[m[32m</Project>[m
+[1mdiff --git a/ComplaintManagementAPI.http b/ComplaintManagementAPI.http[m
+[1mnew file mode 100644[m
+[1mindex 0000000..22dc47c[m
+[1m--- /dev/null[m
+[1m+++ b/ComplaintManagementAPI.http[m
+[36m@@ -0,0 +1,6 @@[m
+[32m+[m[32m@ComplaintManagementAPI_HostAddress = http://localhost:5008[m
+[32m+[m
+[32m+[m[32mGET {{ComplaintManagementAPI_HostAddress}}/weatherforecast/[m
+[32m+[m[32mAccept: application/json[m
+[32m+[m
+[32m+[m[32m###[m
+[1mdiff --git a/Controllers/ComplaintsController.cs b/Controllers/ComplaintsController.cs[m
+[1mnew file mode 100644[m
+[1mindex 0000000..8f33711[m
+[1m--- /dev/null[m
+[1m+++ b/Controllers/ComplaintsController.cs[m
+[36m@@ -0,0 +1,109 @@[m
+[32m+[m[32m﻿[m
+[32m+[m[32musing Microsoft.AspNetCore.Mvc;[m
+[32m+[m[32musing Microsoft.EntityFrameworkCore;[m
+[32m+[m[32musing ComplaintManagementAPI.Data;[m
+[32m+[m[32musing ComplaintManagementAPI.Models;[m
+[32m+[m
+[32m+[m[32mnamespace ComplaintManagementAPI.Controllers;[m
+[32m+[m
+[32m+[m[32m[ApiController][m
+[32m+[m[32m[Route("api/complaints")][m
+[32m+[m[32mpublic class ComplaintsController : ControllerBase[m
+[32m+[m[32m{[m
+[32m+[m[32m    private readonly ApplicationDbContext _context;[m
+[32m+[m
+[32m+[m[32m    public ComplaintsController(ApplicationDbContext context)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        _context = context;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    private static readonly string[] ValidStatuses =[m
+[32m+[m[32m        { "Open", "InProgress", "Resolved" };[m
+[32m+[m
+[32m+[m[32m    [HttpPost][m
+[32m+[m[32m    public async Task<ActionResult<Complaint>> Create(Complaint complaint)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        complaint.Id = 0;[m
+[32m+[m[32m        complaint.Status = "Open";[m
+[32m+[m[32m        complaint.CreatedAt = DateTime.UtcNow;[m
+[32m+[m
+[32m+[m[32m        _context.Complaints.Add(complaint);[m
+[32m+[m[32m        await _context.SaveChangesAsync();[m
+[32m+[m
+[32m+[m[32m        return CreatedAtAction([m
+[32m+[m[32m            nameof(GetById),[m
+[32m+[m[32m            new { id = complaint.Id },[m
+[32m+[m[32m            complaint);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    [HttpGet][m
+[32m+[m[32m    public async Task<ActionResult<IEnumerable<Complaint>>> GetAll([m
+[32m+[m[32m        [FromQuery] string? status)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        var query = _context.Complaints.AsQueryable();[m
+[32m+[m
+[32m+[m[32m        if (!string.IsNullOrWhiteSpace(status))[m
+[32m+[m[32m        {[m
+[32m+[m[32m            var matchingStatus = ValidStatuses.FirstOrDefault([m
+[32m+[m[32m                s => s.Equals(status.Trim(),[m
+[32m+[m[32m                    StringComparison.OrdinalIgnoreCase));[m
+[32m+[m
+[32m+[m[32m            if (matchingStatus is null)[m
+[32m+[m[32m                return BadRequest([m
+[32m+[m[32m                    "Status must be Open, InProgress, or Resolved.");[m
+[32m+[m
+[32m+[m[32m            query = query.Where(c => c.Status == matchingStatus);[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        var complaints = await query[m
+[32m+[m[32m            .OrderByDescending(c => c.CreatedAt)[m
+[32m+[m[32m            .ToListAsync();[m
+[32m+[m
+[32m+[m[32m        return Ok(complaints);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    [HttpGet("{id:int}")][m
+[32m+[m[32m    public async Task<ActionResult<Complaint>> GetById(int id)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        var complaint = await _context.Complaints.FindAsync(id);[m
+[32m+[m
+[32m+[m[32m        if (complaint is null)[m
+[32m+[m[32m            return NotFound();[m
+[32m+[m
+[32m+[m[32m        return Ok(complaint);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    [HttpPut("{id:int}")][m
+[32m+[m[32m    public async Task<ActionResult<Complaint>> Update([m
+[32m+[m[32m        int id, Complaint updated)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        var complaint = await _context.Complaints.FindAsync(id);[m
+[32m+[m
+[32m+[m[32m        if (complaint is null)[m
+[32m+[m[32m            return NotFound();[m
+[32m+[m
+[32m+[m[32m        complaint.Title = updated.Title;[m
+[32m+[m[32m        complaint.Description = updated.Description;[m
+[32m+[m[32m        complaint.SubmittedBy = updated.SubmittedBy;[m
+[32m+[m[32m        complaint.Category = updated.Category;[m
+[32m+[m[32m        complaint.Status = updated.Status;[m
+[32m+[m
+[32m+[m[32m        await _context.SaveChangesAsync();[m
+[32m+[m
+[32m+[m[32m        return Ok(complaint);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    [HttpDelete("{id:int}")][m
+[32m+[m[32m    public async Task<IActionResult> Delete(int id)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        var complaint = await _context.Complaints.FindAsync(id);[m
+[32m+[m
+[32m+[m[32m        if (complaint is null)[m
+[32m+[m[32m            return NotFound();[m
+[32m+[m
+[32m+[m[32m        _context.Complaints.Remove(complaint);[m
+[32m+[m[32m        await _context.SaveChangesAsync();[m
+[32m+[m
+[32m+[m[32m        return NoContent();[m
+[32m+[m[32m    }[m
+[32m+[m[32m}[m
+[1mdiff --git a/Controllers/WeatherForecastController.cs b/Controllers/WeatherForecastController.cs[m
+[1mnew file mode 100644[m
+[1mindex 0000000..584781f[m
+[1m--- /dev/null[m
+[1m+++ b/Controllers/WeatherForecastController.cs[m
+[36m@@ -0,0 +1,26 @@[m
+[32m+[m[32musing Microsoft.AspNetCore.Mvc;[m
+[32m+[m
+[32m+[m[32mnamespace ComplaintManagementAPI.Controllers[m
+[32m+[m[32m{[m
+[32m+[m[32m    [ApiController][m
+[32m+[m[32m    [Route("[controller]")][m
+[32m+[m[32m    public class WeatherForecastController : ControllerBase[m
+[32m+[m[32m    {[m
+[32m+[m[32m        private static readonly string[] Summaries =[m
+[32m+[m[32m        [[m
+[32m+[m[32m            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"[m
+[32m+[m[32m        ];[m
+[32m+[m
+[32m+[m[32m        [HttpGet(Name = "GetWeatherForecast")][m
+[32m+[m[32m        public IEnumerable<WeatherForecast> Get()[m
+[32m+[m[32m        {[m
+[32m+[m[32m       
